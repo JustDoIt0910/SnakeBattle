@@ -99,18 +99,19 @@ void ControlPkt::parsePacket(uchar* pkt)
 
 /**************************ObjectPkt********************************/
 
-ObjectPkt::ObjectPkt(OBJ_TYPE type, int size, vector<vector<short>> pos): Packet(PKT_OBJECT),
-object_type(type), obj_size(size), positions(pos)
+ObjectPkt::ObjectPkt(OBJ_TYPE type, int size, OBJ_COLOR color, vector<vector<short>> pos): Packet(PKT_OBJECT),
+object_type(type), obj_size(size), obj_color(color), positions(pos)
 {
-    head.content_length = 2 + 4 * positions.size();
+    head.content_length = 3 + 4 * positions.size();
 }
 
 ObjectPkt::ObjectPkt(Object* obj): Packet(PKT_OBJECT)
 {
     object_type = obj->Type();
     obj_size = obj->Size();
+    obj_color = obj->Color();
     positions = obj->getPositions();
-    head.content_length = 2 + 4 * positions.size();
+    head.content_length = 3 + 4 * positions.size();
 }
 
 OBJ_TYPE ObjectPkt::getObjType()
@@ -126,6 +127,11 @@ vector<vector<short>>& ObjectPkt::getPositions()
 uchar ObjectPkt::getSize()
 {
     return obj_size;
+}
+
+OBJ_COLOR ObjectPkt::getColor()
+{
+    return obj_color;
 }
 
 /**************************UpdatePkt********************************/
@@ -152,6 +158,7 @@ uchar* UpdatePkt::buildPacket()
         buf[n++] = obj.type();
         buf[n++] = obj.getObjType();
         buf[n++] = obj.getSize();
+        buf[n++] = obj.getColor();
         for(vector<short>& pos : obj.getPositions())
         {
             buf[n++] = getHigh(pos[0]);
@@ -173,4 +180,19 @@ uchar getLow(ushort i)
 {
     uchar low = (i & 0xFF);
     return low;
+}
+
+/**************************SpeedPkt********************************/
+
+SpeedPkt::SpeedPkt(): Packet(PKT_SPEED){}
+
+void SpeedPkt::parsePacket(uchar* pkt)
+{
+    pkt += 3;
+    flag = (bool)(*pkt);
+}
+
+bool SpeedPkt::getFlag()
+{
+    return flag;
 }

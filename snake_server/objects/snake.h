@@ -27,26 +27,27 @@ class Snake : public Object
 public:
     Snake(vector<int> _pos, int _length, vector<vector<ObjInfo>>& M,
     int _size = SNAKE_SIZE_DEFAULT, OBJ_COLOR _color = SNAKE_COLOR_DEFAULT);
-    // Snake(vector<int> _pos, vector<vector<int>>& body, vector<vector<ObjInfo>>& M, 
-    // int _size = SNAKE_SIZE_DEFAULT, OBJ_COLOR _color = SNAKE_COLOR_DEFAULT);
     Snake(Snake* s);
     ~Snake();
-    void setID(int id);
-    int getID();
     void setDir(vector<char> _dirVec);
-    int move();
-    void grow();
+    vector<int>& move();
     vector<vector<short>> getPositions();
+    bool readyToMove();
+    void speedUp(bool flag);
+    void removeFromMap();
 
 private:
-    int id;
     SNode* head;
     SNode* tail;
     int length;
     vector<char> dirVec;
     deque<vector<int>> dq;
+    int foodCnt = 0;
+    vector<int> collisions;
+    bool speedUpFlag = false;
+    int cnt = 0;
 
-    vector<int> getSearchArea(int searchSize);
+    vector<int> getSearchArea(int searchSize, OBJ_TYPE obj);
     bool collision(int x, int y, int _size);
 };
 

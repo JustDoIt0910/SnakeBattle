@@ -23,7 +23,8 @@ enum OBJ_COLOR
 enum OBJ_TYPE
 {
     SNAKE = 0,
-    FOOD
+    FOOD,
+    NONE
 };
 
 struct ObjInfo;
@@ -37,15 +38,19 @@ public:
     int Size();
     OBJ_COLOR Color();
     OBJ_TYPE Type();
-    static int generateID();
+    int getID();
+    static OBJ_COLOR getRandomColor();
     virtual vector<vector<short>> getPositions() = 0;
 
 protected:
+    int id;
     vector<int> pos;
     int size;
     OBJ_TYPE type;
     OBJ_COLOR color;
     vector<vector<ObjInfo>>& Map;
+
+    static int generateID();
 };
 
 double distance(int x1, int y1, int x2, int y2);

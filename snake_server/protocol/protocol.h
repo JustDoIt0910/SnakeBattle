@@ -12,8 +12,7 @@ enum PKT_TYPE
 {
     PKT_LOGIN = 0,
     PKT_HEARTBEAT,
-    PKT_SPEEDUP,
-    PKT_SLOWDOWN,
+    PKT_SPEED,
     PKT_CONTROL,
 
     PKT_DIE,
@@ -92,18 +91,20 @@ private:
 class ObjectPkt : public Packet
 {
 public:
-    ObjectPkt(OBJ_TYPE type, int size, vector<vector<short>> pos);
+    ObjectPkt(OBJ_TYPE type, int size, OBJ_COLOR color, vector<vector<short>> pos);
     ObjectPkt(Object* obj);
     ~ObjectPkt(){}
     uchar* buildPacket(){}
     void parsePacket(uchar* pkt){}
     OBJ_TYPE getObjType();
     uchar getSize();
+    OBJ_COLOR getColor();
     vector<vector<short>>& getPositions();
 
 private:
     OBJ_TYPE object_type;
     uchar obj_size;
+    OBJ_COLOR obj_color;
     vector<vector<short>> positions;
 };
 
@@ -118,6 +119,19 @@ public:
 
 private:
     vector<ObjectPkt> objs;
+};
+
+class SpeedPkt : public Packet
+{
+public:
+    SpeedPkt();
+    ~SpeedPkt(){}
+    uchar* buildPacket(){};
+    void parsePacket(uchar* pkt);
+    bool getFlag();
+
+private:
+    bool flag;
 };
 
 uchar getHigh(ushort i);

@@ -122,16 +122,14 @@ void Listener::Login(LoginPkt& pkt)
     User* user = new User(string(ip), pkt.getDataPort(), pkt.getNickName());
     string uid = user->getUserID();
 
-    int sid = Object::generateID();
     vector<int> pos = {200, 200};
-    Snake* snake = new Snake(pos, 4, server->getMap());
-    user->setSnakeID(sid);
-    snake->setID(sid);
+     Snake* snake = new Snake(pos, 4, server->getMap(), SNAKE_SIZE_DEFAULT, Object::getRandomColor());
+     user->setSnakeID(snake->getID());
 
     printf("userid: %s, nickname: %s, snakeID: %d\n", user->getUserID().c_str(), 
             user->getNickName().c_str(), user->getSnakeID());
 
-    server->addObj(sid, snake);
+    server->addObj(snake->getID(), snake);
     server->addUser(uid, user); 
 }
 

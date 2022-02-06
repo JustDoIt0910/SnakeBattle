@@ -17,9 +17,19 @@ OBJ_TYPE Object::Type() { return type; }
 
 int Object::generateID()
 {
-    static int id = 0;
-    id++;
+    static int _id = 0;
+    _id++;
+    return _id;
+}
+
+int Object::getID()
+{
     return id;
+}
+
+OBJ_COLOR Object::getRandomColor()
+{
+    return (OBJ_COLOR)(rand() % 6);
 }
 
 double distance(int x1, int y1, int x2, int y2)

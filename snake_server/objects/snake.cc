@@ -7,11 +7,12 @@ Snake::Snake(vector<int> _pos, int _length, vector<vector<ObjInfo>>& M,
     int _size, OBJ_COLOR _color)
     :Object(SNAKE, _pos, _size, _color, M), length(_length)
 {
+    id = generateID();
     dirVec.resize(2);
     dirVec[0] = 0;
     dirVec[1] = -3;
     head = new SNode(pos[0], pos[1]);
-    Map[pos[0]][pos[1]] = { id, size };
+    Map[pos[0]][pos[1]] = {id, size, SNAKE};
     tail = head;
     for(int j = 0; j < size / 3; j++)
         dq.push_back({pos[0], pos[1] + 3 * j});
@@ -19,29 +20,13 @@ Snake::Snake(vector<int> _pos, int _length, vector<vector<ObjInfo>>& M,
     {
         int y = pos[1] + i * size;
         tail->next = new SNode(pos[0], y);
-        Map[pos[0]][y] = { id, size };
+        Map[pos[0]][y] = {id, size, SNAKE};
         tail = tail->next;
-        if(i < length - 1)
-            for(int j = 0; j < size / 3; j++)
-                dq.push_back({pos[0], y + 3 * j});
+        for(int j = 0; j < size / 3; j++)
+            dq.push_back({pos[0], y + 3 * j});
     }
+    
 }
-
-// Snake::Snake(vector<int> _pos, vector<vector<int>>& body, vector<vector<ObjInfo>>& M,
-//     int _size, OBJ_COLOR _color)
-//     :Object(SNAKE, _pos, _size, _color, M)
-// {
-//     dirVec.resize(2);
-//     dirVec[0] = 0;
-//     dirVec[1] = -3;
-//     head = new SNode(pos[0], pos[1]);
-//     tail = head;
-//     for(int i = 0; i < body.size(); i++)
-//     {
-//         tail->next = new SNode(body[i][0], body[i][1]);
-//         tail = tail->next;
-//     }
-// }
 
 Snake::Snake(Snake* s): Object(SNAKE, s->pos, s->size, s->color, s->Map), 
     length(s->length), dirVec(s->dirVec)
@@ -73,47 +58,75 @@ Snake::~Snake()
     }
 }
 
-void Snake::setID(int id)
-{
-    this->id = id;
-}
-
-int Snake::getID()
-{
-    return id;
-}
-
 void Snake::setDir(vector<char> _dirVec)
 {
     dirVec = _dirVec;
 }
 
-int Snake::move()
+vector<int>& Snake::move()
 {
-    vector<int> sa = getSearchArea(10);
-    for(int x = sa[0]; x <= sa[2]; x++)
-        for(int y = sa[1]; y <= sa[3]; y++)
+    collisions.clear();
+    if((pos[0] + dirVec[0] * size / 6 < 0) || (pos[1] + dirVec[1] * size / 6 < 0) ||
+        (pos[0] + dirVec[0] * size / 6 >= MAP_SIZE) || (pos[1] + dirVec[1] * size / 6 >= MAP_SIZE))
+    {
+        removeFromMap();
+        collisions.push_back(-1);
+        return collisions;
+    }
+    vector<int> sa = getSearchArea(12, SNAKE);
+    for(int x = max(0, sa[0]); x <= min(MAP_SIZE - 1, sa[2]); x++)
+        for(int y = max(0, sa[1]); y <= min(MAP_SIZE - 1, sa[3]); y++)
         {
-            if(Map[x][y].id != -1 && Map[x][y].id != id)
-                if(collision(x, y, Map[x][y].size))
-                    return Map[x][y].id;
+            ObjInfo info = Map[x][y];
+            if(info.id != 0 && info.type == SNAKE && info.id != id)
+                if(collision(x, y, info.size))
+                {
+                    removeFromMap();
+                    collisions.push_back(info.id);
+                    return collisions;
+                }         
+        }
+    sa = getSearchArea(0, FOOD);
+    for(int x = max(0, sa[0]); x <= min(MAP_SIZE - 1, sa[2]); x++)
+        for(int y = max(0, sa[1]); y <= min(MAP_SIZE - 1, sa[3]); y++)
+        {
+            ObjInfo info = Map[x][y];
+            if(info.id != 0 && info.type == FOOD && info.id != id)
+                if(collision(x, y, info.size))
+                {
+                    foodCnt = (info.size == FOOD_SIZE_DEFAULT) ? foodCnt + 1 : foodCnt + 2;
+                    collisions.push_back(info.id);
+                    Map[x][y] = {0, 0, NONE};
+                }
         }
     int i = 1;
     for(SNode* n = head->next; n != nullptr; n = n->next)
     {
        int index = (i++) * (size / 3) - 1;
-       Map[n->pos[0]][n->pos[1]] = {-1, 0};
+       Map[n->pos[0]][n->pos[1]] = {0, 0, NONE};
        n->pos[0] = dq.at(index)[0];
        n->pos[1] = dq.at(index)[1];
-       Map[n->pos[0]][n->pos[1]] = {id, size};
+       Map[n->pos[0]][n->pos[1]] = {id, size, SNAKE};
     }
-    Map[pos[0]][pos[1]] = {-1, 0};
+    Map[pos[0]][pos[1]] = {0, 0, NONE};
     pos[0] = head->pos[0] = head->pos[0] + dirVec[0];
     pos[1] = head->pos[1] = head->pos[1] + dirVec[1];
-    Map[pos[0]][pos[1]] = {id, size};
+    Map[pos[0]][pos[1]] = {id, size, SNAKE};
     dq.push_front({pos[0], pos[1]});
     dq.pop_back();
-    return 0;
+
+    if(foodCnt >= 2)
+    {
+        foodCnt = 0;
+        int index = i * (size / 3) - 1;
+        int x = dq.at(index)[0];
+        int y = dq.at(index)[1];
+        tail->next = new SNode(x, y);
+        tail = tail->next;
+        for(int j = 1; j <= size / 3; j++)
+            dq.push_back({x - j * dirVec[0], y - j * dirVec[1]});
+    }
+    return collisions;
 }
 
 vector<vector<short>> Snake::getPositions()
@@ -124,20 +137,55 @@ vector<vector<short>> Snake::getPositions()
     return poss;
 }
 
-vector<int> Snake::getSearchArea(int searchSize)
+vector<int> Snake::getSearchArea(int searchSize, OBJ_TYPE obj)
 {   
-    int cx = pos[0] + dirVec[0] * searchSize;
-    int cy = pos[1] + dirVec[1] * searchSize;
     vector<int> rect;
-    rect.push_back(cx - searchSize / 2);
-    rect.push_back(cy - searchSize / 2);
-    rect.push_back(cx + searchSize / 2);
-    rect.push_back(cy + searchSize / 2);
+    if(obj == SNAKE)
+    {
+        int cx = pos[0] + dirVec[0] * searchSize / 2;
+        int cy = pos[1] + dirVec[1] * searchSize / 2;
+        rect.push_back(cx - searchSize / 2);
+        rect.push_back(cy - searchSize / 2);
+        rect.push_back(cx + searchSize / 2);
+        rect.push_back(cy + searchSize / 2);
+    }
+    else
+    {
+        int r = size / (2 * 1.414);
+        rect.push_back(pos[0] - r);
+        rect.push_back(pos[1] - r);
+        rect.push_back(pos[0] + r);
+        rect.push_back(pos[1] + r);
+    }
     return rect;
 }
 
 bool Snake::collision(int x, int y, int _size)
 {
     int dis = distance(x, y, pos[0], pos[1]);
-    return dis <= _size + size;
+    return dis <= ((_size + size) / 2);
+}
+
+void Snake::removeFromMap()
+{
+    for(SNode* n = head; n != nullptr; n = n->next)
+        Map[n->pos[0]][n->pos[1]] = {0, 0, NONE};
+}
+
+bool Snake::readyToMove()
+{
+    if(speedUpFlag)
+        return true;
+    cnt++;
+    if(cnt == 4)
+    {
+        cnt = 0;
+        return true;
+    }
+    return false;
+}
+
+void Snake::speedUp(bool flag)
+{
+    speedUpFlag = flag;
 }
